@@ -1,0 +1,127 @@
+﻿Spesifikasi Kebutuhan Sistem Informasi (SKSI)
+Sistem Manajemen Pembayaran Air Yayasan Pongangan Indah
+Status Dokumen: Draft
+Versi: 1.0
+________________
+
+
+1. Pendahuluan
+1.1 Tujuan Dokumen
+Dokumen ini menyajikan spesifikasi kebutuhan sistem informasi (SIS) untuk aplikasi manajemen pembayaran air di Yayasan Pongangan Indah. Spesifikasi ini mendefinisikan fungsionalitas, arsitektur yang direkomendasikan, dan persyaratan non-fungsional secara komprehensif untuk menjadi panduan utama dalam proses desain, pengembangan, pengujian, dan pemeliharaan sistem.
+1.2 Ruang Lingkup
+Sistem ini dirancang untuk mengelola siklus penuh data penggunaan air, mulai dari pencatatan, pembuatan tagihan, proses pembayaran, hingga pelaporan untuk warga perumahan Pongangan Indah.
+* Peran Pengguna: Sistem akan melayani empat peran utama: Manajemen, Kasir, Pencatat Meter, dan Warga.
+* Platform:
+   * Aplikasi Web (Next.js): Platform utama untuk Kasir dan Manajemen dengan fitur lengkap.
+   * Aplikasi Mobile (React Native - Android): Didedikasikan untuk Pencatat Meter, serta menyediakan akses bagi Warga dan Manajemen untuk fitur-fitur esensial.
+* Fitur Inti (MVP): Pencatatan meter, generasi tagihan otomatis, pembayaran tunai, dan pelaporan dasar.
+* Integrasi Awal: Notifikasi tagihan otomatis melalui API WhatsApp dan pencetakan struk pembayaran.
+* Pengembangan Masa Depan: Integrasi dengan QRIS dan payment gateway lainnya.
+Sistem ini tidak mencakup manajemen infrastruktur fisik air (perpipaan, sensor) atau integrasi dengan perangkat IoT pada fase awal.
+1.3 Definisi dan Istilah
+* Warga: Penghuni perumahan yang menggunakan layanan air.
+* Tagihan: Biaya bulanan yang terdiri dari biaya penggunaan air, biaya pemeliharaan, dan tunggakan sebelumnya.
+* Pemotongan Tagihan: Kebijakan pengurangan tagihan yang diatur oleh manajemen.
+* Dashboard Kinerja: Tampilan visual interaktif berisi metrik-metrik kunci sistem.
+* Struk Pembayaran: Bukti fisik atau digital dari sebuah transaksi pembayaran.
+________________
+
+
+2. Deskripsi Sistem
+2.1 Gambaran Umum
+Sistem ini merupakan solusi digital terintegrasi (web dan mobile) yang mengotomatisasi dan mendigitalisasi proses bisnis inti Yayasan terkait layanan air. Alur kerja utama dimulai dari pencatatan meter oleh petugas, diikuti oleh generasi tagihan otomatis oleh sistem, pengiriman notifikasi via WhatsApp, pemrosesan pembayaran oleh kasir, hingga pemantauan dan analisis data secara real-time oleh manajemen.
+2.2 Metodologi Pengembangan
+Proyek ini akan mengadopsi Metodologi Agile dengan kerangka kerja Scrum. Pengembangan akan dibagi menjadi beberapa sprint (durasi 2 minggu), di mana setiap sprint akan menghasilkan potongan fungsionalitas yang dapat diuji. Pendekatan ini memungkinkan adaptasi cepat terhadap perubahan dan memastikan umpan balik dari pemangku kepentingan dapat diakomodasi secara berkala.
+2.3 Asumsi dan Ketergantungan
+* Asumsi:
+   * Pengguna (petugas dan warga) memiliki akses ke perangkat (PC/smartphone) dan koneksi internet yang memadai.
+   * Setiap warga memiliki nomor WhatsApp yang aktif untuk menerima notifikasi.
+   * Fase awal hanya mendukung pembayaran tunai.
+* Ketergantungan:
+   * UI/UX Design: Diperlukan fase desain UI/UX sebelum pengembangan untuk membuat wireframe dan mockup yang divalidasi pengguna.
+   * Penyedia API WhatsApp: Ketergantungan pada layanan pihak ketiga untuk pengiriman notifikasi.
+   * Perangkat Keras: Ketersediaan printer termal yang kompatibel dengan peramban web di lokasi kasir.
+________________
+
+
+3. Kebutuhan Fungsional
+3.1 Peran: Manajemen (Akses Web & Mobile)
+* Manajemen Dashboard: Pengguna harus dapat memantau metrik kinerja utama secara real-time melalui dashboard interaktif (total tagihan, pembayaran, tunggakan, tren penggunaan air).
+* Manajemen Kebijakan:
+   * Pengguna harus dapat menetapkan dan mengelola aturan pemotongan tagihan.
+   * Pengguna harus dapat menetapkan dan memperbarui biaya pemeliharaan yang akan ditambahkan ke tagihan.
+* Manajemen Pelaporan: Sistem harus mampu menghasilkan laporan dalam format PDF dan Excel, seperti laporan pembayaran bulanan dan daftar tunggakan, dengan filter berdasarkan periode atau warga.
+* Manajemen Pengguna: Pengguna harus dapat melakukan operasi CRUD (Create, Read, Update, Delete) pada akun pengguna lain (Kasir, Pencatat Meter, Warga) dan mengatur hak akses mereka.
+3.2 Peran: Kasir (Akses Web)
+* Proses Pembayaran: Pengguna harus dapat mencari data warga, melihat detail tagihan, memproses pembayaran tunai, dan memperbarui status tagihan menjadi lunas.
+* Manajemen Data Warga: Pengguna harus dapat memperbarui informasi detail warga, seperti nama, alamat, dan nomor kontak.
+* Cetak Struk: Sistem harus dapat menghasilkan dan mencetak struk sebagai bukti pembayaran.
+3.3 Peran: Pencatat Meter (Akses Mobile - Android)
+* Input Meteran: Pengguna harus dapat memasukkan angka meteran air terbaru untuk setiap warga. Sistem harus memberikan validasi untuk mencegah input yang lebih rendah dari bulan sebelumnya tanpa justifikasi.
+* Periode Input Terbatas: Fitur input meteran hanya dapat diakses pada periode tanggal 1-20 setiap bulannya.
+3.4 Peran: Warga (Akses Mobile - Android)
+* Riwayat Tagihan: Pengguna harus dapat melihat riwayat tagihan dan status pembayaran mereka.
+* Pengajuan Keluhan: Pengguna harus dapat mengirimkan keluhan atau masukan terkait layanan melalui formulir di dalam aplikasi.
+3.5 Fitur Umum & Sistem
+* Autentikasi & Otorisasi: Sistem harus menyediakan mekanisme login yang aman (username/password) dan menerapkan Role-Based Access Control (RBAC).
+* Generasi Tagihan Otomatis: Sistem secara otomatis menghitung dan membuat tagihan bulanan berdasarkan input meteran.
+* Notifikasi Otomatis: Sistem secara otomatis mengirimkan notifikasi tagihan via WhatsApp setelah tagihan dibuat dan notifikasi pengingat pembayaran.
+* Audit Log: Sistem harus mencatat semua aktivitas kritikal (misalnya, perubahan data, transaksi pembayaran) untuk keperluan audit dan penelusuran.
+________________
+
+
+4. Kebutuhan Non-Fungsional
+* Kinerja:
+   * Waktu Respon API: 95% dari semua request API harus direspons dalam waktu < 200ms.
+   * Waktu Muat Halaman: Halaman web krusial (dashboard, pembayaran) harus dimuat sepenuhnya dalam < 3 detik.
+   * Skalabilitas: Arsitektur harus dirancang untuk dapat menangani setidaknya 2.000 warga pada tahap awal dan dapat ditingkatkan secara horizontal dengan mudah.
+* Keamanan:
+   * Komunikasi Terenkripsi: Semua komunikasi antara klien dan server harus menggunakan enkripsi TLS 1.2+ (HTTPS).
+   * Penyimpanan Kredensial: Kata sandi pengguna harus di-hash menggunakan algoritma modern (misalnya, Argon2 atau bcrypt).
+   * Manajemen Kunci Rahasia: Tidak ada kunci API, kata sandi database, atau rahasia lainnya yang boleh disimpan langsung di dalam kode.
+* Reliabilitas:
+   * Uptime: Target ketersediaan layanan adalah 99.5%.
+   * Pencadangan Data: Database harus dicadangkan secara otomatis setiap hari dengan retensi 7 hari.
+* Maintainability:
+   * Struktur Kode: Kode harus bersih, modular, dan mengikuti panduan gaya yang jelas.
+   * Test Coverage: Kode di backend harus memiliki cakupan unit test minimal 80%.
+   * Dokumentasi: API harus didokumentasikan dengan baik menggunakan standar seperti OpenAPI (Swagger).
+* Usability:
+   * Antarmuka harus dirancang secara intuitif, responsif, dan ramah pengguna.
+   * Sistem harus menggunakan Bahasa Indonesia sebagai bahasa utama.
+________________
+
+
+5. Model Data (Entity-Relationship)
+* User: id, username, password_hash, role, createdAt, updatedAt.
+* Warga: id, nama, alamat, nomor_meter, nomor_whatsapp, user_id (opsional, untuk login), createdAt, updatedAt.
+* BacaanMeter: id, warga_id, bacaan_sebelumnya, bacaan_saat_ini, tanggal_input, pencatat_id, createdAt.
+* Tagihan: id, warga_id, bulan, tahun, total_penggunaan, biaya_air, biaya_pemeliharaan, tunggakan_sebelumnya, total_tagihan, status, createdAt, updatedAt.
+* Pembayaran: id, tagihan_id, jumlah_bayar, metode_pembayaran, tanggal_bayar, kasir_id, createdAt.
+* Keluhan: id, warga_id, deskripsi, status, createdAt, updatedAt.
+________________
+
+
+6. Arsitektur Sistem dan Tumpukan Teknologi
+6.1 Arsitektur Aplikasi
+Sistem akan mengadopsi arsitektur berbasis API. Frontend (Web & Mobile) akan bertindak sebagai klien yang berkomunikasi dengan Backend melalui REST API yang aman dan terdefinisi dengan baik.
+* Frontend Web: Aplikasi Next.js (React) yang di-hosting di Vercel.
+* Frontend Mobile: Aplikasi React Native untuk platform Android.
+* Backend API: Aplikasi NestJS (Node.js + TypeScript) yang berjalan sebagai kontainer Docker.
+* Database: PostgreSQL yang di-hosting di cloud. Interaksi dengan database akan melalui Prisma ORM.
+* CI/CD Pipeline: Menggunakan GitHub Actions atau GitLab CI untuk mengotomatiskan proses pengujian dan deployment.
+________________
+
+
+7. Pengujian dan Implementasi
+7.1 Strategi Pengujian Berlapis
+* Unit Testing (Jest): Memastikan setiap fungsi atau komponen individual di backend bekerja dengan benar.
+* Integration Testing (Supertest): Memverifikasi bahwa beberapa komponen dapat bekerja sama, misalnya alur request API dari input meteran hingga pembuatan tagihan di database.
+* End-to-End (E2E) Testing (Cypress/Playwright): Mengotomatiskan simulasi interaksi pengguna nyata pada aplikasi web untuk memvalidasi alur kerja lengkap.
+* User Acceptance Testing (UAT): Pengujian manual yang dilakukan oleh perwakilan dari Yayasan untuk memastikan sistem memenuhi semua kebutuhan bisnis sebelum go live.
+7.2 Roadmap Implementasi Berfase
+1. Fase 0: Fondasi & Desain (2-3 Minggu): Finalisasi UI/UX, penyiapan infrastruktur cloud, repositori Git, dan pipeline CI/CD dasar.
+2. Fase 1: MVP - Alur Inti (4-6 Minggu): Fokus pada fitur login, input meteran, generasi tagihan, dan pembayaran tunai oleh kasir.
+3. Fase 2: Pemberdayaan & Pelaporan (3-4 Minggu): Pengembangan dashboard manajemen, fitur pelaporan, dan aplikasi untuk warga melihat tagihan.
+4. Fase 3: Integrasi & Otomatisasi (3-4 Minggu): Implementasi notifikasi WhatsApp, fitur keluhan, dan audit log.
+5. Fase 4: Finalisasi & Go Live (2 Minggu): Pelaksanaan UAT, migrasi data awal, pelatihan pengguna, dan peluncuran resmi sistem.
