@@ -1,0 +1,59 @@
+# Versi file docker-compose
+version: '3.8'
+
+# Mendefinisikan semua service/container yang akan berjalan
+services:
+  # Service untuk API Backend (NestJS)
+  api:
+    # Konfigurasi bagaimana cara membangun image Docker untuk service ini
+    build:
+      context: ./backend    # Cari Dockerfile di dalam folder 'backend'
+      dockerfile: Dockerfile # Nama file-nya adalah Dockerfile
+    container_name: ypi_api # Nama container saat berjalan
+    # Port mapping: [PORT_DI_KOMPUTER_ANDA]:[PORT_DI_DALAM_CONTAINER]
+    ports:
+      - "3001:3001"
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Untuk hot-reloading di beberapa sistem file
+      - DATABASE_URL=postgresql://admin:secret@db:5432/ypi_air_db?schema=public # Override untuk container
+    # Volume mapping: Menghubungkan folder di komputer Anda dengan folder di dalam container
+    # Ini memungkinkan 'hot-reloading' saat Anda mengubah kode
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules # Trik untuk tidak menimpa node_modules di container
+    # Service ini baru akan berjalan setelah service 'db' siap
+    depends_on:
+      - db
+    # Menggunakan file .env di folder backend untuk environment variables
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped # Selalu restart container ini kecuali dihentikan manual
+
+  # Service untuk Database PostgreSQL
+  db:
+    image: postgres:14-alpine # Menggunakan image resmi PostgreSQL versi 14
+    container_name: ypi_db    # Nama container
+    ports:
+      - "5432:5432" # Port default PostgreSQL
+    # Menyimpan data database di volume bernama 'postgres_data'
+    # agar data tidak hilang saat container dimatikan/dihapus
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Environment variables untuk konfigurasi awal database
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ypi_air_db
+    restart: unless-stopped
+
+  # Service opsional untuk GUI Database (Adminer)
+  adminer:
+    image: adminer
+    container_name: ypi_adminer
+    ports:
+      - "8080:8080" # Akses Adminer melalui http://localhost:8080
+    restart: unless-stopped
+
+# Mendefinisikan volume yang akan digunakan
+volumes:
+  postgres_data: # Volume untuk persistensi data database

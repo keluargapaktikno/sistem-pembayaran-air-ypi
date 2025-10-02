@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "expo-install-constants",
+			"type": "shell",
+			"command": "npx --yes expo install expo-constants",
+			"isBackground": false,
+			"group": "build"
+		}
+	]
+}

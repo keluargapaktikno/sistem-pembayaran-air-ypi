@@ -1,0 +1,142 @@
+// prisma/schema.prisma (KODE LENGKAP)
+
+// Blok ini mendefinisikan generator klien. Ini memberitahu Prisma untuk
+// membuat Prisma Client yang dioptimalkan untuk TypeScript/JavaScript.
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+// Blok ini mendefinisikan koneksi ke database.
+// URL-nya diambil dari environment variable DATABASE_URL di file .env.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum untuk mendefinisikan peran pengguna yang diizinkan dalam sistem.
+// Ini sesuai dengan peran yang didefinisikan di SKPL.
+enum Role {
+  ADMIN             // Akses penuh, sesuai peran Manajemen/Kasir di SKPL
+  PETUGAS_PENCATAT  // Sesuai peran Pencatat Meter di SKPL
+  WARGA             // Sesuai peran Warga di SKPL
+}
+
+// Model untuk Pengguna Sistem (Users)
+model User {
+  id        String   @id @default(cuid()) // ID unik, dibuat otomatis
+  email     String   @unique             // Email harus unik untuk setiap pengguna
+  password  String                       // Hash password akan disimpan di sini
+  nama      String
+  role      Role     @default(WARGA)     // Peran pengguna, default-nya WARGA
+  isActive  Boolean  @default(true)      // Status aktif pengguna
+  createdAt DateTime @default(now())     // Waktu pembuatan record
+  updatedAt DateTime @updatedAt          // Waktu pembaruan record
+
+  // Relasi opsional 1-ke-1 ke Warga.
+  // Satu User bisa terhubung ke satu data Warga.
+  warga     Warga?
+  
+  // Relasi ke pencatatan meter (sebagai petugas)
+  pencatatanMeter     PencatatanMeter[] @relation("PencatatanOlehPetugas")
+  pembayaranDicatat   Pembayaran[]      @relation("PembayaranOlehUser")
+}
+
+// Enum untuk status huni warga
+enum StatusHuni {
+  PEMILIK
+  PENGONTRAK
+}
+
+// Model untuk data Warga
+model Warga {
+  id            String   @id @default(cuid())
+  nomor_rekening String?  @unique
+  userId        String   @unique // Foreign key untuk relasi 1-ke-1 ke User
+  nama_lengkap  String
+  blok          String
+  nomor_rumah   String
+  nomor_telepon String   @unique
+  status_huni   StatusHuni @default(PEMILIK)
+  isAktif       Boolean  @default(true) // Menandakan apakah warga masih tinggal
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Mendefinisikan relasi dengan User.
+  // Jika User dihapus, data Warga terkait juga akan dihapus (onDelete: Cascade).
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relasi ke catatan meter untuk warga ini
+  catatanMeter        PencatatanMeter[]
+  tagihan             Tagihan[]
+
+  // Membuat constraint bahwa kombinasi blok dan nomor rumah harus unik.
+  @@unique([blok, nomor_rumah], name: "alamat_unik")
+}
+
+// Model untuk pencatatan meter air bulanan
+model PencatatanMeter {
+  id                 String   @id @default(cuid())
+  periode_pencatatan DateTime // Misal: 2025-10-01 (hanya tanggal awal bulan yang relevan)
+  meter_awal         Int
+  meter_akhir        Int
+  pemakaian          Int      // Dihitung otomatis (meter_akhir - meter_awal)
+  foto_meter         String?  // URL ke gambar bukti (opsional untuk sekarang)
+  dicatatPada        DateTime @default(now())
+
+  wargaId            String
+  petugasId          String   // ID dari user yang melakukan pencatatan
+
+  warga              Warga    @relation(fields: [wargaId], references: [id])
+  petugas            User     @relation("PencatatanOlehPetugas", fields: [petugasId], references: [id])
+
+  // Satu warga hanya bisa satu pencatatan per periode
+  @@unique([wargaId, periode_pencatatan])
+  tagihan             Tagihan?
+}
+
+// Model untuk tagihan bulanan
+enum StatusPembayaran {
+  BELUM_BAYAR
+  LUNAS
+  TERTUNDA
+}
+
+model Tagihan {
+  id                  String           @id @default(cuid())
+  nomor_tagihan       String           @unique
+  periode_tagihan     DateTime
+  jumlah_pemakaian_m3 Int
+  tarif_per_m3        Float            // Untuk sekarang kita gunakan tarif flat
+  biaya_abonemen      Float
+  total_tagihan       Float
+  status_pembayaran   StatusPembayaran @default(BELUM_BAYAR)
+  tanggal_terbit      DateTime         @default(now())
+  tanggal_jatuh_tempo DateTime
+
+  pencatatanMeterId   String           @unique // Tiap pencatatan hanya punya 1 tagihan
+  wargaId             String
+
+  pencatatanMeter     PencatatanMeter  @relation(fields: [pencatatanMeterId], references: [id])
+  warga               Warga            @relation(fields: [wargaId], references: [id])
+  pembayaran          Pembayaran?
+}
+
+enum MetodePembayaran {
+  TUNAI
+  TRANSFER_BANK
+}
+
+model Pembayaran {
+  id                  String            @id @default(cuid())
+  tagihanId           String            @unique
+  jumlah_bayar        Float
+  tanggal_bayar       DateTime          @default(now())
+  metode_pembayaran   MetodePembayaran
+  dicatatOlehId       String            // User ID (Admin/Kasir) yg mencatat
+
+  tagihan             Tagihan           @relation(fields: [tagihanId], references: [id])
+  dicatatOleh         User              @relation("PembayaranOlehUser", fields: [dicatatOlehId], references: [id])
+}
+
+// End of schema
