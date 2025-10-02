@@ -1,0 +1,117 @@
+﻿________________
+
+
+Strategi Implementasi: Dari Fondasi Hingga Go Live
+Fase 0: Fondasi dan Desain (Estimasi: 2-3 Minggu)
+Ini adalah fase persiapan krusial sebelum satu baris kode pun ditulis. Tujuannya adalah memastikan semua orang selaras dan semua alat yang dibutuhkan siap.
+1. Finalisasi Tumpukan Teknologi (Tech Stack):
+   * Backend: Saya setuju dengan Node.js, tetapi saya sangat merekomendasikan penggunaan TypeScript dengan framework NestJS. NestJS menyediakan arsitektur yang sangat terstruktur dan modular, yang sangat membantu untuk pemeliharaan jangka panjang.
+   * Database: PostgreSQL adalah pilihan yang sangat baik dan andal. Untuk mempercepat pengembangan, kita akan menggunakan Prisma sebagai ORM (Object-Relational Mapper) untuk interaksi database yang aman dan intuitif.
+   * Frontend Web (Kasir & Manajemen): Daripada React.js standar, saya sarankan menggunakan Next.js. Ini adalah framework di atas React yang memberikan server-side rendering, optimasi performa, dan struktur proyek yang lebih baik secara out-of-the-box.
+   * Frontend Mobile (Pencatat Meter & Warga): React Native adalah pilihan yang baik. Namun, kita juga bisa mempertimbangkan Flutter jika tim memiliki keahlian atau jika performa mendekati native menjadi prioritas utama. Untuk saat ini, kita akan tetap pada React Native sesuai SKPL.
+   * Infrastruktur & Deployment: Kita akan menggunakan Docker untuk mengemas aplikasi (backend, frontend, database) ke dalam kontainer. Ini memastikan konsistensi lingkungan dari pengembangan hingga produksi. Untuk hosting, saya rekomendasikan:
+      * Vercel untuk Frontend Web (Next.js) karena integrasinya yang mulus.
+      * AWS Lightsail atau DigitalOcean Droplets untuk Backend dan Database PostgreSQL. Ini memberikan keseimbangan antara biaya dan kontrol.
+2. Desain UI/UX:
+   * Membuat wireframe dan mockup resolusi tinggi untuk setiap layar di aplikasi web dan mobile.
+   * Desain ini harus divalidasi dengan perwakilan dari setiap peran pengguna (manajemen, kasir, dll.) untuk memastikan alur kerjanya intuitif dan efisien.
+3. Setup Proyek:
+   * Membuat repositori Git (di GitHub/GitLab).
+   * Mengkonfigurasi pipeline CI/CD dasar menggunakan GitHub Actions atau GitLab CI. Setiap push ke repositori akan secara otomatis menjalankan unit test.
+   * Menyiapkan lingkungan pengembangan, staging, dan produksi di cloud.
+________________
+
+
+Fase 1: Minimum Viable Product (MVP) - Alur Inti (Estimasi: 4-6 Minggu)
+Tujuan fase ini adalah membuat alur kerja utama dari pencatatan hingga pembayaran tunai berjalan sepenuhnya. Ini adalah inti dari sistem.
+1. Backend:
+   * Membangun skema database menggunakan Prisma.
+   * Membuat API untuk autentikasi (login/logout) untuk semua peran.
+   * Membuat endpoint API untuk CRUD (Create, Read, Update, Delete) pengguna (user) dan warga (warga).
+   * Membangun logika inti:
+      * API untuk Pencatat Meter memasukkan angka meteran.
+      * Logika server-side untuk menghitung tagihan secara otomatis berdasarkan selisih meteran, biaya pemeliharaan, dan tunggakan.
+      * API untuk Kasir melihat tagihan warga dan memproses pembayaran tunai.
+2. Aplikasi Mobile (Android):
+   * Halaman Login untuk Pencatat Meter.
+   * Fitur inti untuk Pencatat Meter: Melihat daftar warga, memasukkan angka meteran baru dengan validasi dasar (tidak boleh lebih kecil dari sebelumnya).
+3. Aplikasi Web:
+   * Halaman Login untuk Kasir.
+   * Fitur inti untuk Kasir: Mencari warga, melihat detail tagihan, memasukkan jumlah pembayaran tunai, dan mengubah status tagihan menjadi "Lunas".
+   * Integrasi dengan printer termal via browser print API untuk cetak struk sederhana.
+Hasil Fase 1: Sistem fungsional di mana petugas bisa mencatat meteran, tagihan otomatis terbuat, dan kasir dapat menerima pembayaran tunai.
+________________
+
+### **FASE 2: Pelaporan, Pemberdayaan Warga & Notifikasi Real-time (Estimasi: 3-4 Minggu)**
+**Tujuan Utama:** Memberikan wawasan melalui laporan, menyediakan akses bagi warga melalui web, dan meningkatkan transparansi dengan notifikasi instan.
+
+1.  **Migrasi Data Sampel (Tugas Awal):**
+    * Mengekstrak ~100 baris data pelanggan beserta transaksi terkait dari database `ppi.mdb`.
+    * Mengimpor data sampel ini ke dalam lingkungan pengembangan kita untuk memastikan pengujian yang lebih akurat dan relevan.
+
+2.  **Implementasi Notifikasi WhatsApp (Backend):**
+    * Mengintegrasikan `NotifikasiService` dengan API **`kirimi.id`**.
+    * Memodifikasi `PencatatanMeterService` agar setelah berhasil menyimpan data meteran, ia **langsung memanggil `NotifikasiService`**.
+    * Notifikasi yang dikirim ke warga akan berisi:
+        * Konfirmasi angka meteran awal dan akhir.
+        * **Perkiraan (estimasi) total tagihan** untuk bulan tersebut, berdasarkan formula yang ada.
+
+3.  **Pengembangan Backend untuk Pelaporan & Portal Warga:**
+    * Membuat *endpoint* API untuk laporan: `/laporan/pemasukan` dan `/laporan/tunggakan`.
+    * Membuat *endpoint* API khusus untuk warga yang sudah login: `/warga/saya/tagihan` untuk melihat histori tagihan pribadi.
+
+4.  **Pengembangan Frontend Web (Dashboard Admin & Portal Warga):**
+    * Membangun **Halaman Laporan** di dashboard admin, lengkap dengan filter tanggal dan visualisasi data sederhana.
+    * Membangun **Portal Warga** berbasis web yang mencakup:
+        * Halaman login terpisah.
+        * Halaman dashboard sederhana untuk warga melihat riwayat tagihan dan statusnya.
+
+5.  **Poles UI/UX (Tugas Akhir Fase):**
+    * Mengalokasikan waktu khusus untuk melakukan finalisasi dan perbaikan visual (UI/UX) pada semua fitur yang telah dibangun di Fase 1 dan 2, baik di aplikasi web maupun mobile.
+
+---
+
+### **FASE 3: Fitur Pendukung & Keamanan (Estimasi: 3-4 Minggu)**
+**Tujuan Utama:** Menambahkan fitur komunikasi dua arah dan meningkatkan keamanan serta akuntabilitas sistem.
+
+1.  **Pengembangan Fitur Keluhan (Full Stack):**
+    * **Backend:** Menambahkan model, service, dan controller untuk manajemen keluhan.
+    * **Frontend Web:** Membangun antarmuka di **Portal Warga** bagi mereka untuk mengirim keluhan, dan antarmuka di **Dashboard Admin** untuk meninjau dan merespons keluhan tersebut.
+
+2.  **Implementasi Audit Log (Backend):**
+    * Membuat mekanisme otomatis untuk mencatat semua aksi penting yang dilakukan oleh pengguna (Admin, Kasir, Petugas) ke dalam sebuah tabel log untuk tujuan audit dan keamanan.
+
+3.  **Poles UI/UX (Tugas Akhir Fase):**
+    * Melakukan finalisasi visual untuk fitur-fitur baru yang dibangun di fase ini.
+
+---
+
+### **FASE 4: Finalisasi, Migrasi Penuh, dan Go Live (Estimasi: 2 Minggu)**
+**Tujuan Utama:** Memastikan sistem siap produksi, data historis berhasil dipindahkan, dan pengguna siap untuk transisi.
+
+1.  **Penyiapan Infrastruktur & DevOps:**
+    * Menyiapkan server dan database produksi.
+    * Memfinalisasi *pipeline* CI/CD untuk *deployment* otomatis.
+    * Mengkonfigurasi keamanan (domain, SSL) dan pencadangan database otomatis.
+
+2.  **Finalisasi Fitur & Konfigurasi:**
+    * Mengimplementasikan mekanisme pemicu **generasi tagihan yang fleksibel** (harian, pekanan, atau bulanan) sesuai kebutuhan manajemen, yang dapat diatur oleh Admin.
+
+3.  **Migrasi Data Penuh:**
+    * Menjalankan skrip migrasi yang sudah teruji untuk mengimpor seluruh data pelanggan esensial dan riwayat transaksi (misalnya 2 tahun terakhir) dari `ppi.mdb` ke sistem produksi.
+
+4.  **Distribusi Aplikasi Mobile:**
+    * Membangun file **APK (Android Package)** final dari aplikasi pencatat meter.
+    * Menyiapkan panduan instalasi dan **mendistribusikan file APK secara langsung** dan aman kepada para petugas pencatat.
+
+5.  **User Acceptance Testing (UAT) & Pelatihan:**
+    * Mengadakan sesi pengujian akhir bersama semua perwakilan pengguna.
+    * Melaksanakan sesi pelatihan untuk Admin, Kasir, dan Petugas menggunakan sistem yang sudah terisi data migrasi.
+
+6.  **Go Live:**
+    * Menentukan tanggal peralihan sistem.
+    * Mengarahkan aplikasi web ke domain resmi dan memantau sistem secara intensif pada hari-hari pertama penggunaan.
+
+Pasca Go Live: Pemeliharaan dan Pengembangan Masa Depan
+* Pemeliharaan: Menyediakan dukungan teknis, melakukan pencadangan database secara rutin, dan memantau kinerja server.
+* Pengembangan Berikutnya: Setelah sistem stabil, mulailah merencanakan pengembangan fitur masa depan seperti integrasi QRIS dan payment gateway sesuai dengan roadmap di SKPL.
