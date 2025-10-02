@@ -1,9 +1,9 @@
-// frontend-mobile/screens/WargaListScreen.tsx (KODE BARU & INTERAKTIF)
-import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button, TouchableOpacity } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+// frontend-mobile/screens/WargaListScreen.tsx (KODE FINAL DENGAN PENCARIAN)
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button, TouchableOpacity, TextInput } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import api, { API_BASE_URL } from '../api/api';
-import { useAuthStore } from '../store/authStore';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface Warga {
   id: string;
@@ -14,42 +14,36 @@ interface Warga {
 
 export default function WargaListScreen() {
   const [warga, setWarga] = useState<Warga[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigation = useNavigation<any>(); // Hook untuk navigasi
+  const navigation = useNavigation<any>();
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  const fetchWarga = async () => {
+  const fetchWarga = useCallback(async (search: string) => {
     setIsLoading(true);
     setError(null);
-    const token = useAuthStore.getState().token;
-    const profile = useAuthStore.getState().profile;
-    console.warn('[FETCH WARGA]', 'Token:', token ? 'present' : 'missing', 'Role:', profile?.role);
     try {
-      const response = await api.get('/warga');
-      setWarga(response.data);
+      const response = await api.get(`/warga?search=${search}`);
+      setWarga(response.data.data); // Backend mengembalikan data dalam properti `data`
     } catch (err: any) {
-      // Tampilkan pesan error yang lebih informatif
       const status = err?.response?.status;
-      const msg = status ? `Gagal memuat data warga (HTTP ${status}).` : 'Jaringan bermasalah saat memuat data warga.';
+      const msg = status ? `Gagal memuat data warga (HTTP ${status}).` : 'Jaringan bermasalah.';
       console.error('Failed to fetch warga:', err?.message || err);
-      setError(`${msg} Pastikan ponsel dan komputer satu Wi-Fi dan sudah login.`);
+      setError(`${msg}`);
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  // useFocusEffect akan menjalankan fetch data setiap kali layar ini difokuskan
-  useFocusEffect(
-    useCallback(() => {
-      fetchWarga();
-    }, [])
-  );
+  }, []);
+
+  useEffect(() => {
+    fetchWarga(debouncedSearchTerm);
+  }, [debouncedSearchTerm, fetchWarga]);
 
   const renderItem = ({ item }: { item: Warga }) => (
-    // Bungkus dengan TouchableOpacity
     <TouchableOpacity
       style={styles.itemContainer}
-      onPress={() => navigation.navigate('InputMeter', { warga: item })} // Navigasi ke InputMeter dan kirim data warga
+      onPress={() => navigation.navigate('InputMeter', { warga: item })}
     >
       <Text style={styles.itemNama}>{item.nama_lengkap}</Text>
       <Text style={styles.itemAlamat}>
@@ -58,69 +52,75 @@ export default function WargaListScreen() {
     </TouchableOpacity>
   );
   
-  if (isLoading) {
-    return <ActivityIndicator size="large" style={styles.centered} />;
-  }
+  const ListHeader = () => (
+    <View style={styles.searchContainer}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Cari warga..."
+        value={searchTerm}
+        onChangeText={setSearchTerm}
+      />
+    </View>
+  );
 
-  if (error) {
+  const ListEmptyComponent = () => {
+    if (isLoading) {
+      return <ActivityIndicator size="large" style={styles.centered} />;
+    }
+    if (error) {
+      return (
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.hint}>API: {API_BASE_URL}</Text>
+          <Button title="Coba Lagi" onPress={() => fetchWarga(debouncedSearchTerm)} />
+        </View>
+      );
+    }
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.hint}>API: {API_BASE_URL}</Text>
-        <Button title="Coba Lagi" onPress={fetchWarga} />
+        <Text>Tidak ada data warga.</Text>
       </View>
     );
-  }
+  };
 
   return (
     <FlatList
       data={warga}
       renderItem={renderItem}
       keyExtractor={(item) => item.id}
+      ListHeaderComponent={ListHeader}
+      ListEmptyComponent={ListEmptyComponent}
       contentContainerStyle={styles.list}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  list: {
-    padding: 10,
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  list: { flexGrow: 1, backgroundColor: '#f5f5f5' },
+  searchContainer: { padding: 10, backgroundColor: 'white' },
+  searchInput: {
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#f5f5f5'
   },
   itemContainer: {
     backgroundColor: 'white',
     padding: 15,
+    marginHorizontal: 10,
     borderRadius: 8,
     marginBottom: 10,
-    // Shadow untuk iOS
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    // Shadow untuk Android
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  itemNama: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  itemAlamat: {
-    fontSize: 14,
-    color: 'gray',
-    marginTop: 4,
-  },
-  errorText: {
-    textAlign: 'center',
-    color: 'crimson',
-    marginBottom: 8,
-  },
-  hint: {
-    textAlign: 'center',
-    color: 'gray',
-    marginBottom: 12,
-  },
+  itemNama: { fontSize: 16, fontWeight: 'bold' },
+  itemAlamat: { fontSize: 14, color: 'gray', marginTop: 4 },
+  errorText: { textAlign: 'center', color: 'crimson', marginBottom: 8 },
+  hint: { textAlign: 'center', color: 'gray', marginBottom: 12 },
 });

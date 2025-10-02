@@ -1,4 +1,4 @@
-// frontend-web/src/store/authStore.ts (KODE LENGKAP)
+// frontend-web/src/store/authStore.ts (KODE DIPERBAIKI)
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -30,7 +30,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage', // Nama key di localStorage
-      onRehydrateStorage: () => (state) => {
+      // MENGGUNAKAN onFinishHydration YANG BENAR UNTUK ZUSTAND v4+
+      onFinishHydration: (state) => {
         state?.setHydrated();
       },
     },

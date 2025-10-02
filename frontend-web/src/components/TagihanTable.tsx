@@ -72,11 +72,16 @@ export default function TagihanTable({ data, onPay }: TagihanTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
-                {tagihan.status_pembayaran === 'BELUM_BAYAR' && (
-                  <Button size="sm" onClick={() => onPay(tagihan)}>
-                    Bayar
+                <div className="flex justify-end items-center gap-2">
+                   <Button variant="outline" size="sm" asChild>
+                    <a href={`/dashboard/tagihan/${tagihan.id}`}>Lihat Detail</a>
                   </Button>
-                )}
+                  {tagihan.status_pembayaran === 'BELUM_BAYAR' && (
+                    <Button size="sm" onClick={() => onPay(tagihan)}>
+                      Bayar
+                    </Button>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}

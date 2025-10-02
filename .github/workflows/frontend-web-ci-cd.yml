@@ -1,0 +1,52 @@
+# .github/workflows/frontend-web-ci-cd.yml
+
+name: Frontend Web CI/CD
+
+on:
+  push:
+    branches:
+      - main # Jalankan hanya saat ada push ke branch main
+    paths:
+      - 'frontend-web/**' # Hanya jalankan jika ada perubahan di dalam direktori frontend-web
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend-web # Set direktori kerja default
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend-web/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+
+      # Jika ada script test, jalankan di sini
+      # - name: Run Tests
+      #   run: npm run test
+
+      - name: Build Project
+        run: npm run build
+
+      # Contoh deployment ke Vercel
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod' # Deploy ke environment produksi
+          working-directory: ./frontend-web

@@ -1,44 +1,44 @@
-// backend/src/tagihan/tagihan.service.ts
-import { Injectable } from '@nestjs/common';
+// backend/src/tagihan/tagihan.service.ts (DENGAN CRON JOB)
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TagihanService {
+  private readonly logger = new Logger(TagihanService.name);
+
   constructor(private prisma: PrismaService) {}
 
-  // Generate invoices untuk semua pencatatan meter yang belum punya tagihan
+  // Cron job yang berjalan setiap hari jam 1 pagi (01:00)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  async handleGenerateInvoicesCron() {
+    this.logger.log('Mulai menjalankan cron job untuk generate tagihan...');
+    const result = await this.generateInvoices();
+    this.logger.log(result.message);
+  }
+
+  // Logika utama untuk generate invoices
   async generateInvoices() {
-    // Cari pencatatan meter yang belum punya tagihan
     const pencatatanTanpaTagihan = await this.prisma.pencatatanMeter.findMany({
       where: {
-        tagihan: null, // Belum ada tagihan
-      },
-      include: {
-        warga: true,
+        tagihan: null,
       },
     });
 
     if (pencatatanTanpaTagihan.length === 0) {
-      return { message: 'Tidak ada pencatatan meter yang belum ditagihkan.' };
+      return { message: 'Tidak ada pencatatan baru yang perlu dibuatkan tagihan.' };
     }
 
-    const invoices: any[] = [];
-
+    const invoices = [];
     for (const pencatatan of pencatatanTanpaTagihan) {
-      // Hitung total tagihan
-      const tarifPerM3 = 5000; // Tarif flat, bisa diubah nanti
-      const biayaAbonemen = 10000; // Biaya abonemen flat
+      const tarifPerM3 = 5000;
+      const biayaAbonemen = 10000;
       const totalTagihan = pencatatan.pemakaian * tarifPerM3 + biayaAbonemen;
-
-      // Generate nomor tagihan unik
       const nomorTagihan = `INV-${Date.now()}-${pencatatan.id.slice(-6)}`;
-
-      // Tanggal jatuh tempo: 15 hari setelah periode pencatatan
       const tanggalJatuhTempo = new Date(pencatatan.periode_pencatatan);
-      tanggalJatuhTempo.setDate(tanggalJatuhTempo.getDate() + 15);
+      tanggalJatuhTempo.setDate(tanggalJatuhTempo.getDate() + 20); // Jatuh tempo tanggal 20 bulan berikutnya
 
-      // Buat tagihan
-      const tagihan = await this.prisma.tagihan.create({
+      const newInvoice = await this.prisma.tagihan.create({
         data: {
           nomor_tagihan: nomorTagihan,
           periode_tagihan: pencatatan.periode_pencatatan,
@@ -50,30 +50,67 @@ export class TagihanService {
           pencatatanMeterId: pencatatan.id,
           wargaId: pencatatan.wargaId,
         },
-        include: {
-          warga: {
-            select: { nama_lengkap: true, blok: true, nomor_rumah: true },
-          },
-        },
       });
-
-      invoices.push(tagihan);
+      invoices.push(newInvoice);
     }
 
     return {
-      message: `Berhasil generate ${invoices.length} tagihan.`,
+      message: `Cron job selesai. Berhasil generate ${invoices.length} tagihan baru.`,
       invoices,
     };
   }
 
-  // Mendapatkan semua tagihan
-  async getAllTagihan() {
-    return this.prisma.tagihan.findMany({
+  // Mendapatkan semua tagihan dengan paginasi dan filter
+  async findAll(
+    page: number,
+    pageSize: number,
+    status?: string,
+    wargaId?: string, // Tambahkan parameter wargaId opsional
+  ) {
+    const whereClause: any = {};
+    if (status) {
+      whereClause.status_pembayaran = status;
+    }
+    // Jika wargaId diberikan, tambahkan ke klausa where
+    if (wargaId) {
+      whereClause.wargaId = wargaId;
+    }
+
+    const totalItems = await this.prisma.tagihan.count({ where: whereClause });
+    const totalPages = Math.ceil(totalItems / pageSize);
+
+    const tagihan = await this.prisma.tagihan.findMany({
+      where: whereClause,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       include: {
         warga: {
           select: { nama_lengkap: true, blok: true, nomor_rumah: true },
         },
       },
+      orderBy: {
+        periode_tagihan: 'desc',
+      }
     });
+
+    return {
+      data: tagihan,
+      currentPage: page,
+      totalPages,
+    };
+  }
+
+  async findOne(id: string) {
+    const tagihan = await this.prisma.tagihan.findUnique({
+      where: { id },
+      include: {
+        warga: true,
+        pembayaran: true,
+      },
+    });
+    if (!tagihan) {
+      throw new Error('Tagihan tidak ditemukan');
+    }
+    return tagihan;
   }
 }

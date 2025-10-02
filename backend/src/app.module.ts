@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule'; // 1. Impor ScheduleModule
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -16,10 +17,15 @@ import { BillingModule } from './billing/billing.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(), // 2. Tambahkan ScheduleModule.forRoot()
     PrismaModule,
-    UsersModule, // <- PASTIKAN KEDUANYA ADA DI SINI
+    UsersModule,
     AuthModule, 
-    WargaModule, PencatatanMeterModule, TagihanModule, PembayaranModule, BillingModule,
+    WargaModule,
+    PencatatanMeterModule,
+    TagihanModule,
+    PembayaranModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
